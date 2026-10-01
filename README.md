@@ -7,11 +7,12 @@ A tracker for learning Rubik's cube last-layer algorithms — all 57 OLL and 21 
 ## Features
 
 - Case diagrams for every OLL/PLL case, generated from real cube states (OLL shown in top-color-only style, PLL in full color)
-- Per-case algorithm, notes, and nickname fields
-- Mastery checkboxes: learned, 4-angle recognition, pre/post AUFs practiced, alt angle/alg
+- Per-case algorithm, optional alternative alg, notes, and nickname fields
+- Mastery checkboxes: learned, 4-angle recognition, pre/post AUFs practiced
 - Progress bars, a learned-per-month chart, and a dated activity log
 - Filter by OLL shape / PLL category, learned vs. remaining, or search
-- PLL comes pre-filled with common algs from SpeedCubeDB — edit freely
+- Comes pre-filled with a starter set of algs — swap in whichever ones you use, and hit ↺ to go back to the starter alg
+- Dark mode by default, with a light mode toggle
 - Export / import a JSON backup
 
 ## Install as an app

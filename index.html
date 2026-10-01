@@ -12,6 +12,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Alg Log">
+<script>
+  // Applied before first paint so light-mode users don't see a dark flash.
+  try { if (localStorage.getItem('alglog-theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -29,18 +33,16 @@
     --danger: #d9694f;
     --radius: 3px;
     --oll-gray: #45484e;
+    --sticker-u: #f2ce3f;
   }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-      --bg: #f4f2ee; --panel: #ffffff; --panel-alt: #eeece7; --line: #ddd9d1;
-      --text: #1c1c1a; --text-dim: #63615c; --text-faint: #a19e97;
-      --oll-gray: #cfcabe;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #15171a; --panel: #1d2024; --panel-alt: #23262b; --line: #2c2f34;
-    --text: #e8e6e1; --text-dim: #8b8d91; --text-faint: #5c5e63;
-    --oll-gray: #45484e;
+  /* Dark is the default; light is opt-in via the toggle. The top-face yellow is
+     darkened in light mode so it doesn't wash out against the white panels. */
+  :root[data-theme="light"] {
+    --bg: #f4f2ee; --panel: #ffffff; --panel-alt: #eeece7; --line: #ddd9d1;
+    --text: #1c1c1a; --text-dim: #63615c; --text-faint: #a19e97;
+    --oll: #c98516;
+    --oll-gray: #cfcabe;
+    --sticker-u: #d9a800;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -59,6 +61,8 @@
   .hero h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.01em; }
   .hero p.sub { margin: 0; color: var(--text-dim); font-size: 13.5px; max-width: 46ch; }
   .hero-left { flex: 1 1 260px; }
+  .theme-btn { margin-top: 12px; background: var(--panel); border: 1px solid var(--line); color: var(--text-dim); border-radius: var(--radius); padding: 5px 10px; font-family: 'Space Grotesk', sans-serif; font-size: 12px; cursor: pointer; }
+  .theme-btn:hover { color: var(--text); }
   .hero-stat .num { font-family: 'IBM Plex Mono', monospace; font-size: 44px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; }
   .hero-stat .lbl { color: var(--text-dim); font-size: 12.5px; margin-top: 4px; }
   .hero-chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
@@ -131,11 +135,12 @@
   .learned-date { font-size: 10.5px; color: var(--text-faint); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
   .del-btn { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 4px; }
   .del-btn:hover { color: var(--danger); }
-  .alt-row { display: flex; align-items: center; gap: 4px; }
-  .add-alt-link { background: none; border: none; color: var(--text-faint); font-size: 11px; cursor: pointer; padding: 0; font-family: 'Space Grotesk', sans-serif; text-decoration: underline dotted; }
-  .add-alt-link:hover { color: var(--text-dim); }
-  .alt-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; }
-  .alt-remove:hover { color: var(--danger); }
+  .alg-line { display: flex; gap: 6px; align-items: center; }
+  .reset-btn { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 4px; }
+  .reset-btn:hover { color: var(--text); }
+  .alt-alg summary { font-size: 11.5px; color: var(--text-faint); cursor: pointer; user-select: none; padding: 1px 0; }
+  .alt-alg summary:hover { color: var(--text-dim); }
+  .alt-alg[open] summary { color: var(--text-dim); margin-bottom: 5px; }
 
   .empty-state { text-align: center; padding: 40px 10px; color: var(--text-faint); font-size: 13px; }
 
@@ -173,6 +178,7 @@
     <div class="hero-left">
       <h1>OLL/PLL Alg Log</h1>
       <p class="sub">Your algorithm set, what's left to learn, and how fast you're picking it up.</p>
+      <button class="theme-btn" id="themeBtn"></button>
     </div>
     <div class="hero-stat">
       <div class="num" id="heroNum">0</div>
@@ -200,7 +206,7 @@
     <div class="mastery-line">
       <span>4-angle recognition: <b id="massFour">0</b></span>
       <span>3/3 AUFs practiced: <b id="massAufs">0</b></span>
-      <span>Alt angle / alg learned: <b id="massAlt">0</b></span>
+      <span>Alternative algs saved: <b id="massAlt">0</b></span>
     </div>
   </div>
 
@@ -331,7 +337,13 @@ const PLL_DEFAULT_ALG = {
   Z: "M' U' M2 U' M2 U' M' U2 M2"
 };
 
-const STICKER = { U: '#f2ce3f', R: '#c1272d', F: '#2f8f46', D: '#eceae5', L: '#e2791f', B: '#2557a5' };
+// Starter OLL algs, keyed by case number (1–57).
+const OLL_DEFAULT_ALG = {};
+
+// Starter alternative algs, keyed by case id ('oll-27', 'pll-Ga', ...).
+const DEFAULT_ALT_ALG = {};
+
+const STICKER = { U: 'var(--sticker-u)', R: '#c1272d', F: '#2f8f46', D: '#eceae5', L: '#e2791f', B: '#2557a5' };
 
 // mono=true (OLL) only distinguishes "top color" vs "anything else" — for OLL the
 // specific side color is meaningless (permutation isn't solved yet), only whether
@@ -375,16 +387,26 @@ function caseSVG(pat, mono) {
       alg: '', notes: '', learned: false, date: null,
       fourAngle: false, dateFour: null,
       aufs: false, dateAufs: null,
-      hasAlt: false, altLearned: false, dateAlt: null
+      altAlg: ''
     }, extra);
   }
+
+  // Starter alg for a case — what a brand-new user sees, and what "reset"
+  // goes back to. Everyone is free to overwrite these with their own.
+  function starterAlg(c) {
+    if (c.id.startsWith('oll-')) return OLL_DEFAULT_ALG[c.num] || '';
+    if (c.id.startsWith('pll-')) return PLL_DEFAULT_ALG[c.name] || '';
+    return '';
+  }
+  function starterAltAlg(c) { return DEFAULT_ALT_ALG[c.id] || ''; }
 
   function defaultData() {
     const oll = [];
     for (let i = 1; i <= 57; i++) {
       oll.push(blankCase({ id: 'oll-' + i, num: i, name: '' }));
     }
-    const pll = PLL_NAMES.map((name, i) => blankCase({ id: 'pll-' + name, num: i + 1, name: name, alg: PLL_DEFAULT_ALG[name] || '' }));
+    const pll = PLL_NAMES.map((name, i) => blankCase({ id: 'pll-' + name, num: i + 1, name: name }));
+    [...oll, ...pll].forEach(c => { c.alg = starterAlg(c); c.altAlg = starterAltAlg(c); });
     return { oll, pll, custom: [], log: [] };
   }
 
@@ -408,12 +430,10 @@ function caseSVG(pat, mono) {
   // no per-field dates) onto the current one, without losing anything the user
   // already ticked.
   function migrateCase(c) {
-    if (c.hasAlt === undefined) c.hasAlt = !!c.altAngle;
-    if (c.altLearned === undefined) c.altLearned = !!c.altAngle;
+    if (c.altAlg === undefined) c.altAlg = '';
     if (c.aufs === undefined) c.aufs = false;
     if (c.dateFour === undefined) c.dateFour = c.fourAngle ? (c.date || null) : null;
     if (c.dateAufs === undefined) c.dateAufs = null;
-    if (c.dateAlt === undefined) c.dateAlt = c.altLearned ? (c.date || null) : null;
     return c;
   }
 
@@ -427,9 +447,6 @@ function caseSVG(pat, mono) {
       parsed.oll.forEach(migrateCase);
       parsed.pll.forEach(migrateCase);
       parsed.custom.forEach(migrateCase);
-      // Seed preliminary PLL algs for anyone whose alg field is still blank —
-      // never overwrites an alg you've already entered.
-      parsed.pll.forEach(c => { if (!c.alg && PLL_DEFAULT_ALG[c.name]) c.alg = PLL_DEFAULT_ALG[c.name]; });
       // Apply the targeted corrections above, only where the text is still exactly the old value.
       parsed.pll.forEach(c => {
         const fix = PLL_ALG_FIXES[c.name];
@@ -452,6 +469,7 @@ function caseSVG(pat, mono) {
   let activeFilter = 'all';
   let activeCategory = 'all';
   let searchTerm = '';
+  const openAlts = new Set(); // alt-alg sections the user expanded this session
 
   const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -506,7 +524,7 @@ function caseSVG(pat, mono) {
     const all = [...state.oll, ...state.pll, ...state.custom];
     document.getElementById('massFour').textContent = all.filter(c => c.fourAngle).length;
     document.getElementById('massAufs').textContent = all.filter(c => c.aufs).length;
-    document.getElementById('massAlt').textContent = all.filter(c => c.altLearned).length;
+    document.getElementById('massAlt').textContent = all.filter(c => (c.altAlg || '').trim()).length;
   }
 
   function renderLog() {
@@ -580,7 +598,7 @@ function caseSVG(pat, mono) {
     if (activeFilter === 'remaining' && c.learned) return false;
     if (activeCategory !== 'all' && categoryOf(c, activeTab) !== activeCategory) return false;
     if (searchTerm) {
-      const hay = `${c.num || ''} ${c.name || ''} ${c.notes || ''} ${c.alg || ''}`.toLowerCase();
+      const hay = `${c.num || ''} ${c.name || ''} ${c.notes || ''} ${c.alg || ''} ${c.altAlg || ''}`.toLowerCase();
       if (!hay.includes(searchTerm.toLowerCase())) return false;
     }
     return true;
@@ -624,15 +642,8 @@ function caseSVG(pat, mono) {
       const showNameInput = activeTab === 'oll';
       const pat = patternFor(c, activeTab);
       const label = caseLabel(c, activeTab);
-      const altBlock = c.hasAlt
-        ? `<div class="alt-row">
-             <label class="check-line">
-               <input type="checkbox" data-field="altLearned" data-datefield="dateAlt" data-logfield="alt" ${c.altLearned ? 'checked' : ''}>
-               <span>Alt angle/alg</span>
-             </label>
-             <button class="alt-remove" data-action="unmark-alt" title="This case doesn't have an alt angle">&times;</button>
-           </div>`
-        : `<button class="add-alt-link" data-action="mark-alt">+ alt angle</button>`;
+      const starter = starterAlg(c);
+      const altOpen = !!(c.altAlg || '').trim() || openAlts.has(c.id);
       row.innerHTML = `
         <div class="case-pic-wrap">
           ${caseSVG(pat, activeTab === 'oll')}
@@ -640,7 +651,14 @@ function caseSVG(pat, mono) {
           ${showNameInput ? `<input class="case-name-input" data-field="name" placeholder="nickname" value="${escapeAttr(c.name || '')}">` : ''}
         </div>
         <div class="case-fields">
-          <input class="alg-input" data-field="alg" placeholder="Enter your algorithm" value="${escapeAttr(c.alg || '')}">
+          <div class="alg-line">
+            <input class="alg-input" data-field="alg" placeholder="Enter your algorithm" value="${escapeAttr(c.alg || '')}">
+            ${starter ? `<button class="reset-btn" data-action="reset" title="Reset to the starter alg"${c.alg === starter ? ' hidden' : ''}>&#8634;</button>` : ''}
+          </div>
+          <details class="alt-alg"${altOpen ? ' open' : ''}>
+            <summary>Alternative alg</summary>
+            <input class="alg-input" data-field="altAlg" placeholder="Optional &mdash; a different alg or angle for this case" value="${escapeAttr(c.altAlg || '')}">
+          </details>
           <input class="notes-input" data-field="notes" placeholder="Notes (fingertricks, source, etc.)" value="${escapeAttr(c.notes || '')}">
         </div>
         <div class="case-status">
@@ -656,11 +674,24 @@ function caseSVG(pat, mono) {
             <input type="checkbox" data-field="aufs" data-datefield="dateAufs" data-logfield="aufs" ${c.aufs ? 'checked' : ''}>
             <span>3/3 pre/post AUFs</span>
           </label>
-          ${altBlock}
           <div class="learned-date">${c.learned && c.date ? daysAgo(c.date) : ''}</div>
         </div>
         ${activeTab === 'custom' ? `<button class="del-btn" data-action="delete" title="Remove">&times;</button>` : '<div></div>'}
       `;
+
+      const resetBtn = row.querySelector('[data-action="reset"]');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          c.alg = starter;
+          row.querySelector('[data-field="alg"]').value = starter;
+          resetBtn.hidden = true;
+          save();
+        });
+      }
+
+      row.querySelector('.alt-alg').addEventListener('toggle', (e) => {
+        if (e.target.open) openAlts.add(c.id); else openAlts.delete(c.id);
+      });
 
       row.querySelectorAll('[data-field]').forEach(el => {
         const field = el.dataset.field;
@@ -678,6 +709,8 @@ function caseSVG(pat, mono) {
           } else {
             c[field] = el.value;
             save();
+            if (field === 'alg' && resetBtn) resetBtn.hidden = c.alg === starter;
+            if (field === 'altAlg') renderHero();
           }
         });
       });
@@ -686,25 +719,6 @@ function caseSVG(pat, mono) {
       if (delBtn) {
         delBtn.addEventListener('click', () => {
           state.custom = state.custom.filter(x => x.id !== c.id);
-          save();
-          renderAll();
-        });
-      }
-
-      const markAltBtn = row.querySelector('[data-action="mark-alt"]');
-      if (markAltBtn) {
-        markAltBtn.addEventListener('click', () => {
-          c.hasAlt = true;
-          save();
-          renderList();
-        });
-      }
-      const unmarkAltBtn = row.querySelector('[data-action="unmark-alt"]');
-      if (unmarkAltBtn) {
-        unmarkAltBtn.addEventListener('click', () => {
-          c.hasAlt = false;
-          c.altLearned = false;
-          c.dateAlt = null;
           save();
           renderAll();
         });
@@ -791,6 +805,21 @@ function caseSVG(pat, mono) {
     }).catch(e => alert('Could not import: ' + e.message))
       .finally(() => { importFile.value = ''; });
   });
+
+  const themeBtn = document.getElementById('themeBtn');
+  function syncThemeBtn() {
+    const light = document.documentElement.dataset.theme === 'light';
+    themeBtn.textContent = light ? '\u263E Dark mode' : '\u2600 Light mode';
+    document.querySelector('meta[name="theme-color"]').content = light ? '#f4f2ee' : '#15171a';
+  }
+  themeBtn.addEventListener('click', () => {
+    const light = document.documentElement.dataset.theme !== 'light';
+    if (light) document.documentElement.dataset.theme = 'light';
+    else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem('alglog-theme', light ? 'light' : 'dark'); } catch (e) {}
+    syncThemeBtn();
+  });
+  syncThemeBtn();
 
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => {});
