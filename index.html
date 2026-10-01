@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cube Log</title>
+<meta name="description" content="Track your OLL/PLL algorithms, what's left to learn, and how fast you're picking them up.">
+<meta name="theme-color" content="#15171a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cube Log">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #15171a;
+    --panel: #1d2024;
+    --panel-alt: #23262b;
+    --line: #2c2f34;
+    --text: #e8e6e1;
+    --text-dim: #8b8d91;
+    --text-faint: #5c5e63;
+    --oll: #e7a33e;
+    --pll: #4fa6a0;
+    --custom: #b688c9;
+    --danger: #d9694f;
+    --radius: 3px;
+    --oll-gray: #45484e;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f4f2ee; --panel: #ffffff; --panel-alt: #eeece7; --line: #ddd9d1;
+      --text: #1c1c1a; --text-dim: #63615c; --text-faint: #a19e97;
+      --oll-gray: #cfcabe;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15171a; --panel: #1d2024; --panel-alt: #23262b; --line: #2c2f34;
+    --text: #e8e6e1; --text-dim: #8b8d91; --text-faint: #5c5e63;
+    --oll-gray: #45484e;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  .hero {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 24px;
+    padding-bottom: 22px; border-bottom: 1px solid var(--line); margin-bottom: 22px;
+  }
+  .hero h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .hero p.sub { margin: 0; color: var(--text-dim); font-size: 13.5px; max-width: 46ch; }
+  .hero-left { flex: 1 1 260px; }
+  .hero-stat .num { font-family: 'IBM Plex Mono', monospace; font-size: 44px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; }
+  .hero-stat .lbl { color: var(--text-dim); font-size: 12.5px; margin-top: 4px; }
+  .hero-chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .chip { font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 4px 9px; border-radius: var(--radius); border: 1px solid var(--line); color: var(--text-dim); }
+  .chip.oll { border-color: var(--oll); color: var(--oll); }
+  .chip.pll { border-color: var(--pll); color: var(--pll); }
+  .chip.custom { border-color: var(--custom); color: var(--custom); }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 18px; }
+  .panel h2 { font-size: 13px; font-weight: 600; margin: 0 0 14px; color: var(--text-dim); }
+
+  .prog-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .prog-row:last-child { margin-bottom: 0; }
+  .prog-label { width: 78px; font-size: 12.5px; color: var(--text-dim); flex-shrink: 0; }
+  .prog-track { flex: 1; height: 7px; background: var(--panel-alt); border-radius: 4px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 4px; }
+  .prog-fill.oll { background: var(--oll); }
+  .prog-fill.pll { background: var(--pll); }
+  .prog-count { width: 54px; text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
+  .mastery-line { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); font-size: 12.5px; color: var(--text-dim); display: flex; gap: 18px; flex-wrap: wrap; }
+  .mastery-line b { color: var(--text); font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+  .chart-compare { font-size: 12.5px; color: var(--text-dim); }
+  .chart-compare b { color: var(--text); font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  .chart-compare .up { color: var(--pll); }
+  .chart-compare .down { color: var(--danger); }
+  .bars { display: flex; align-items: flex-end; gap: 10px; height: 86px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .bar { width: 100%; max-width: 34px; background: var(--panel-alt); border-radius: 3px 3px 0 0; position: relative; min-height: 2px; }
+  .bar.current { background: var(--oll); }
+  .bar-count { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .bar-month { font-size: 11px; color: var(--text-faint); margin-top: 6px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .tab-btn { background: none; border: none; color: var(--text-dim); font-family: 'Space Grotesk', sans-serif; font-size: 13.5px; font-weight: 500; padding: 9px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent-current, var(--oll)); }
+  .tab-btn .n { color: var(--text-faint); font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; margin-left: 4px; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .cat-row { margin-bottom: 12px; }
+  .cat-select-label { font-size: 12.5px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
+  .cat-select { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: var(--radius); padding: 6px 9px; font-family: 'Space Grotesk', sans-serif; font-size: 12.5px; }
+  .toolbar input[type="text"] { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: var(--radius); padding: 7px 10px; font-family: 'Space Grotesk', sans-serif; font-size: 13px; flex: 1; min-width: 140px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .seg button { background: var(--panel); border: none; color: var(--text-dim); font-size: 12.5px; padding: 7px 11px; cursor: pointer; border-right: 1px solid var(--line); font-family: 'Space Grotesk', sans-serif; }
+  .seg button:last-child { border-right: none; }
+  .seg button.active { background: var(--panel-alt); color: var(--text); }
+
+  .case-row { display: grid; grid-template-columns: 60px 1fr 180px 24px; gap: 12px; align-items: start; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .case-row:last-child { border-bottom: none; }
+  .case-pic-wrap { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .case-pic { width: 56px; height: 56px; display: block; }
+  .case-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; text-align: center; }
+  .case-num.oll-text { color: var(--oll); }
+  .case-num.pll-text { color: var(--pll); }
+  .case-num.custom-text { color: var(--custom); }
+  .case-name-input { background: none; border: none; color: var(--text-dim); font-size: 11px; padding: 0; font-family: 'Space Grotesk', sans-serif; width: 100%; text-align: center; }
+  .case-name-input::placeholder { color: var(--text-faint); }
+  .case-fields { display: flex; flex-direction: column; gap: 6px; padding-top: 2px; }
+  .alg-input { width: 100%; background: var(--panel-alt); border: 1px solid var(--line); color: var(--text); border-radius: var(--radius); padding: 7px 9px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+  .alg-input::placeholder { color: var(--text-faint); font-family: 'Space Grotesk', sans-serif; }
+  .notes-input { width: 100%; background: none; border: none; border-bottom: 1px dashed var(--line); color: var(--text-dim); padding: 3px 1px; font-family: 'Space Grotesk', sans-serif; font-size: 12px; }
+  .notes-input::placeholder { color: var(--text-faint); }
+  .case-status { display: flex; flex-direction: column; gap: 5px; padding-top: 2px; }
+  .check-line { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+  .check-line input { accent-color: var(--oll); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+  .check-line span { font-size: 11.5px; color: var(--text-dim); }
+  .check-line.primary span { color: var(--text); font-weight: 500; font-size: 12.5px; }
+  .learned-date { font-size: 10.5px; color: var(--text-faint); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+  .del-btn { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 4px; }
+  .del-btn:hover { color: var(--danger); }
+  .alt-row { display: flex; align-items: center; gap: 4px; }
+  .add-alt-link { background: none; border: none; color: var(--text-faint); font-size: 11px; cursor: pointer; padding: 0; font-family: 'Space Grotesk', sans-serif; text-decoration: underline dotted; }
+  .add-alt-link:hover { color: var(--text-dim); }
+  .alt-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; }
+  .alt-remove:hover { color: var(--danger); }
+
+  .empty-state { text-align: center; padding: 40px 10px; color: var(--text-faint); font-size: 13px; }
+
+  .log-day { margin-bottom: 16px; }
+  .log-day:last-child { margin-bottom: 0; }
+  .log-date { font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px; display: flex; align-items: center; gap: 7px; }
+  .log-day-count { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 400; color: var(--text-faint); background: var(--panel-alt); border-radius: 8px; padding: 1px 7px; }
+  .log-entry { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-cat { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  .log-cat.oll-text { color: var(--oll); }
+  .log-cat.pll-text { color: var(--pll); }
+  .log-cat.custom-text { color: var(--custom); }
+  .log-field { color: var(--text-dim); text-align: right; }
+
+  .custom-add-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 16px; background: var(--panel-alt); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
+  .custom-add-form input { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: var(--radius); padding: 7px 9px; font-family: 'Space Grotesk', sans-serif; font-size: 13px; }
+  .custom-add-form input.mono-field { font-family: 'IBM Plex Mono', monospace; }
+  .add-btn { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: var(--radius); padding: 7px 13px; font-size: 12.5px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+
+  footer { text-align: center; color: var(--text-faint); font-size: 11.5px; margin-top: 26px; }
+  .backup-row { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+
+  @media (max-width: 600px) {
+    .case-row { grid-template-columns: 56px 1fr 26px; }
+    .case-status { grid-column: 1 / span 2; flex-direction: row; flex-wrap: wrap; gap: 12px; }
+    .custom-add-form { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="hero-left">
+      <h1>Cube Log</h1>
+      <p class="sub">Your algorithm set, what's left to learn, and how fast you're picking it up.</p>
+    </div>
+    <div class="hero-stat">
+      <div class="num" id="heroNum">0</div>
+      <div class="lbl">algorithms learned</div>
+      <div class="hero-chips">
+        <span class="chip oll" id="chipOll">OLL 0/57</span>
+        <span class="chip pll" id="chipPll">PLL 0/21</span>
+        <span class="chip custom" id="chipCustom">Custom 0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Progress</h2>
+    <div class="prog-row">
+      <div class="prog-label">OLL</div>
+      <div class="prog-track"><div class="prog-fill oll" id="progOll" style="width:0%"></div></div>
+      <div class="prog-count" id="progOllCount">0 / 57</div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">PLL</div>
+      <div class="prog-track"><div class="prog-fill pll" id="progPll" style="width:0%"></div></div>
+      <div class="prog-count" id="progPllCount">0 / 21</div>
+    </div>
+    <div class="mastery-line">
+      <span>4-angle recognition: <b id="massFour">0</b></span>
+      <span>3/3 AUFs practiced: <b id="massAufs">0</b></span>
+      <span>Alt angle / alg learned: <b id="massAlt">0</b></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="chart-head">
+      <h2 style="margin:0;">Learned per month</h2>
+      <div class="chart-compare" id="chartCompare"></div>
+    </div>
+    <div class="bars" id="bars"></div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="oll" style="--accent-current:var(--oll)">OLL <span class="n" id="tabOllCount">0/57</span></button>
+    <button class="tab-btn" data-tab="pll" style="--accent-current:var(--pll)">PLL <span class="n" id="tabPllCount">0/21</span></button>
+    <button class="tab-btn" data-tab="custom" style="--accent-current:var(--custom)">Custom <span class="n" id="tabCustomCount">0</span></button>
+    <button class="tab-btn" data-tab="log" style="--accent-current:var(--custom)">Log <span class="n" id="tabLogCount">0</span></button>
+  </div>
+
+  <div class="cat-row" id="catRowPll" style="display:none;">
+    <div class="seg" id="pllCatSeg">
+      <button class="active" data-cat="all">All</button>
+      <button data-cat="adjacent">Adjacent (12)</button>
+      <button data-cat="diagonal">Diagonal (5)</button>
+      <button data-cat="corners-solved">Corners Solved (4)</button>
+    </div>
+  </div>
+  <div class="cat-row" id="catRowOll">
+    <label class="cat-select-label">Shape:
+      <select id="ollCatSelect" class="cat-select">
+        <option value="all">All</option>
+        <option value="dot">Dot (8)</option>
+        <option value="cross">Cross (7)</option>
+        <option value="square">Square (2)</option>
+        <option value="lightning-bolt">Lightning Bolt (6)</option>
+        <option value="fish-shape">Fish (4)</option>
+        <option value="knight-shape">Knight Move (4)</option>
+        <option value="corners-oriented">Corners Oriented (2)</option>
+        <option value="awkward-shape">Awkward (4)</option>
+        <option value="p-shape">P Shape (4)</option>
+        <option value="t-shape">T Shape (2)</option>
+        <option value="c-shape">C Shape (2)</option>
+        <option value="w-shape">W Shape (2)</option>
+        <option value="l-shape">L Shape (6)</option>
+        <option value="i-shape">Line (4)</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="searchBox" placeholder="Search by number, name or notes...">
+    <div class="seg" id="filterSeg">
+      <button class="active" data-filter="all">All</button>
+      <button data-filter="learned">Learned</button>
+      <button data-filter="remaining">Remaining</button>
+    </div>
+  </div>
+
+  <div id="customAddWrap" style="display:none;">
+    <div class="custom-add-form">
+      <input type="text" id="customName" placeholder="Case name (e.g. F2L: back-left pair)">
+      <input type="text" id="customAlg" class="mono-field" placeholder="Algorithm (e.g. R U R' U')">
+      <button class="add-btn" id="customAddBtn">Add</button>
+    </div>
+  </div>
+
+  <div class="panel" id="listPanel">
+    <div id="caseList"></div>
+  </div>
+
+  <div class="panel" id="logPanel" style="display:none;">
+    <div id="logList"></div>
+  </div>
+
+  <footer>
+    Case pictures are computed from each algorithm's actual cube state &mdash; your data is stored locally in this browser.
+    <div class="backup-row">
+      <button class="add-btn" id="exportBtn">Export backup</button>
+      <button class="add-btn" id="importBtn">Import backup</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
+    </div>
+  </footer>
+</div>
+
+<script>
+// ---- Pattern data: derived from a tested cube-move engine (@moishy/cubing-core),
+// not hand-authored — each 21-char string encodes the true last-layer sticker
+// state produced by that case's algorithm, in fixed URFDLB face-letter order:
+// [U-face 9 cells][ULB 2][UBR 2][UFL 2][URF 2][UR][UB][UL][UF]
+const OLL_PAT = ["BLFBUFRRRULLUFUUBUUUU", "LLBBUFLRFBURUUFURUUUU", "LLBRUBUFRBURUFLFUUUUU", "FBLFULRRUURUFUBLBUUUU", "RRFBUUBUUFULURULBLUUF", "FUUFUURRBURFLUBULLBUU", "RUFUUFULLFULUBRBUUBRU", "BURBUULLUULUBUFRFRFUU", "RFUUUBFUBUBFLURULUURL", "BBUUURRUFRULBFULUUULF", "FLLBUUUUBLUBURFRURUUF", "BFULUULUFULBRUFURBUUR", "RFLUUUULBFUBUFLRURUBU", "RFLUUUBRUUBUFULRFBULU", "RRFUUUBBUFULURULBFULU", "FFUUUURRBURFLUBULBULU", "UBFFULFRUBRURLULBUUUU", "UFULURRBRLBFLUBFUUUUU", "ULUFUBFRRLBRFLUUBUUUU", "URUBUFULUFLLBRFBRUUUU", "BUBUUUFUFULRULUURLRBF", "FULUUUBULURUFRUBURFBL", "UUUUUURUFLBRFUBLURBLF", "FUUUUURUULULBUBRFRBLF", "UUBUUUFUULBRUURFLFRBL", "UUBUUUFURFLULURUBFLRB", "RUFUUUUULFULUBRBUBLRF", "UUUUUFUBULBBRFLRFURLU", "UFUUURRURLBFLFUUBUUBL", "ULUFUUFUFBRLBLUURBUUR", "BUUBUULFURULBUFRFRLUU", "FFUBUURUULULBUBRFRUUL", "FFUUUURRULULBUBRFBULU", "URUUUUFFRRFLBLUUBLUBU", "URRBUUBUUFLFUULBRLUUF", "ULRUUFLUUBRFUUFLBUUBR", "UUFUUFBBURFLUULBRULRU", "RUUUUFURLFUBRLBUFULBU", "UUFRUFBUULBURRUFLUBUL", "BUULUFUUFULRFBRLUURUB", "URUFUUFUFBRLBURLUBUUL", "UFUUURBUBFLRFULRUUUBL", "ULBUURUUBRFRUFLULUUBF", "RFUBUURUUUBLBFUFLRUUL", "RFUUUURRUUBLBFUFLBULU", "UULFULUULBRBURFUFUBUR", "LUBFUULBFBURUUFURRLUU", "BURUUFFBRULUBLUFUURLU", "LLBUUBLUFBURUUFURUURF", "FLLFUUBULURUFRUBURUUB", "BLRUUUFBRULUBLUFURUFU", "RUBLURRUFUBULFULUUBUF", "LLRUUBLURBUUBUFFUUURF", "LURUUFLLRBUUBUFFUUBRU", "FUBFURLULURRUBUUFULUB", "BFBUUUFRFULRULUURBULU", "UFUUUUURULBBRFLRFBULU"];
+// These are derived directly from the exact algorithm text below (not a separate
+// dataset) — picture and algorithm can never drift apart again.
+const PLL_PAT = ["UUUUUUUUUBRRFFLLBRBLF", "UUUUUUUUURFLBFLBRRBLF", "UUUUUUUUUFLRFLBBRRBLF", "UUUUUUUUULBRFFLBRRFLB", "UUUUUUUUULBRFFLBRLFBR", "UUUUUUUUULBRFFLBRFLRB", "UUUUUUUUULBRFFLBRLRFB", "UUUUUUUUULBRFFLBRBFRL", "UUUUUUUUULBBRFLRFLFRB", "UUUUUUUUULBRFFLBRBRLF", "UUUUUUUUUBRFLLBRFLRBF", "UUUUUUUUULBFLBRRFLBRF", "UUUUUUUUURFBRFLLBLBRF", "UUUUUUUUUBRFLLBRFFBRL", "UUUUUUUUUFLBRRFLBBLRF", "UUUUUUUUULBRFFLBRLBRF", "UUUUUUUUULBBRFLRFLBFR", "UUUUUUUUULBBRFLRFFBRL", "UUUUUUUUULBFLBRRFFBLR", "UUUUUUUUURFBRFLLBRLBF", "UUUUUUUUUFLLBRFBRRFLB"];
+const OLL_SUBSET = ["dot","dot","dot","dot","square","square","lightning-bolt","lightning-bolt","fish-shape","fish-shape","lightning-bolt","lightning-bolt","knight-shape","knight-shape","knight-shape","knight-shape","dot","dot","dot","dot","cross","cross","cross","cross","cross","cross","cross","corners-oriented","awkward-shape","awkward-shape","p-shape","p-shape","t-shape","c-shape","fish-shape","w-shape","fish-shape","w-shape","lightning-bolt","lightning-bolt","awkward-shape","awkward-shape","p-shape","p-shape","t-shape","c-shape","l-shape","l-shape","l-shape","l-shape","i-shape","i-shape","l-shape","l-shape","i-shape","i-shape","corners-oriented"];
+const PLL_NAMES = ['Aa','Ab','E','F','Ga','Gb','Gc','Gd','H','Ja','Jb','Na','Nb','Ra','Rb','T','Ua','Ub','V','Y','Z'];
+
+// Categories match SpeedCubeDB's own filters/labels for these sets.
+const OLL_SHAPE = ["dot","dot","dot","dot","square","square","lightning-bolt","lightning-bolt","fish-shape","fish-shape","lightning-bolt","lightning-bolt","knight-shape","knight-shape","knight-shape","knight-shape","dot","dot","dot","dot","cross","cross","cross","cross","cross","cross","cross","corners-oriented","awkward-shape","awkward-shape","p-shape","p-shape","t-shape","c-shape","fish-shape","w-shape","fish-shape","w-shape","lightning-bolt","lightning-bolt","awkward-shape","awkward-shape","p-shape","p-shape","t-shape","c-shape","l-shape","l-shape","l-shape","l-shape","i-shape","i-shape","l-shape","l-shape","i-shape","i-shape","corners-oriented"];
+const PLL_CATEGORY = { Aa:'adjacent', Ab:'adjacent', E:'diagonal', F:'adjacent', Ga:'adjacent', Gb:'adjacent', Gc:'adjacent', Gd:'adjacent', H:'corners-solved', Ja:'adjacent', Jb:'adjacent', Na:'diagonal', Nb:'diagonal', Ra:'adjacent', Rb:'adjacent', T:'adjacent', Ua:'corners-solved', Ub:'corners-solved', V:'diagonal', Y:'diagonal', Z:'corners-solved' };
+
+// Preliminary algs pulled directly from speedcubedb.com/a/3x3/PLL — the first
+// listed (top-voted) algorithm for each case, except Gb, Na, Nb, Rb (2nd listed)
+// and V (4th listed), per your picks. Just a starting point — edit any of these
+// freely once the app is running.
+// No leading y/y' anywhere — verified against the engine, so each alg solves its
+// picture with zero rotation (x is kept where the community alg naturally uses
+// it, e.g. Aa/Ab/E/Ja, since that's a grip tilt, not a recognition-angle issue).
+const PLL_DEFAULT_ALG = {
+  Aa: "x R' U R' D2 R U' R' D2 R2 x'",
+  Ab: "x R2 D2 R U R' D2 R U' R x'",
+  E: "x' R U' R' D R U R' D' R U R' D R U' R' D' x",
+  F: "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R",
+  Ga: "R2 U R' U R' U' R U' R2 D U' R' U R D'",
+  Gb: "R' U' R U D' R2 U R' U R U' R U' R2 D",
+  Gc: "R2 U' R U' R U R' U R2 D' U R U' R' D",
+  Gd: "R U R' U' D R2 U' R U' R' U R' U R2 D'",
+  H: "M2 U M2 U2 M2 U M2",
+  Ja: "x R2 F R F' R U2 r' U r U2 x'",
+  Jb: "R U R' F' R U R' U' R' F R2 U' R'",
+  Na: "F' R U R' U' R' F R2 F U' R' U' R U F' R'",
+  Nb: "r' D' F r U' r' F' D r2 U r' U' r' F r F'",
+  Ra: "R U' R' U' R U R D R' U' R D' R' U2 R'",
+  Rb: "R2 F R U R U' R' F' R U2 R' U2 R",
+  T: "R U R' U' R' F R2 U' R' U' R U R' F'",
+  Ua: "M2 U M U2 M' U M2",
+  Ub: "M2 U' M U2 M' U' M2",
+  V: "R U' R U R' D R D' R U' D R2 U R2 D' R2",
+  Y: "F R U' R' U' R U R' F' R U R' U' R' F R F'",
+  Z: "M' U' M2 U' M2 U' M' U2 M2"
+};
+
+const STICKER = { U: '#f2ce3f', R: '#c1272d', F: '#2f8f46', D: '#eceae5', L: '#e2791f', B: '#2557a5' };
+
+// mono=true (OLL) only distinguishes "top color" vs "anything else" — for OLL the
+// specific side color is meaningless (permutation isn't solved yet), only whether
+// a sticker is on top or not, and which side it's peeking out on. PLL keeps full
+// color since matching side colors to centers is exactly how PLL is recognized.
+function caseSVG(pat, mono) {
+  if (!pat) {
+    return '<svg viewBox="0 0 100 100" class="case-pic"><rect x="20" y="20" width="60" height="60" rx="5" fill="none" stroke="var(--line)" stroke-width="3" stroke-dasharray="5,5"/></svg>';
+  }
+  const u = pat.slice(0, 9);
+  const ulb = pat.slice(9, 11), ubr = pat.slice(11, 13), ufl = pat.slice(13, 15), urf = pat.slice(15, 17);
+  const ur = pat[17], ub = pat[18], ul = pat[19], uf = pat[20];
+  const col = ch => mono ? (ch === 'U' ? STICKER.U : 'var(--oll-gray)') : (STICKER[ch] || '#777');
+  let s = '';
+  const rect = (x, y, w, h, ch) => { s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.6" fill="${col(ch)}"/>`; };
+  // corner flaps
+  rect(8, 17, 8, 21, ulb[0]); rect(17, 8, 21, 8, ulb[1]);   // ULB
+  rect(61, 8, 21, 8, ubr[0]); rect(84, 17, 8, 21, ubr[1]);  // UBR
+  rect(17, 84, 21, 8, ufl[0]); rect(8, 61, 8, 21, ufl[1]);  // UFL
+  rect(84, 61, 8, 21, urf[0]); rect(61, 84, 21, 8, urf[1]); // URF
+  // edge flaps
+  rect(39, 8, 21, 8, ub);   // UB
+  rect(84, 39, 8, 21, ur);  // UR
+  rect(39, 84, 21, 8, uf);  // UF
+  rect(8, 39, 8, 21, ul);   // UL
+  // 3x3 grid on top
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      rect(17 + c * 22, 17 + r * 22, 21, 21, u[r * 3 + c]);
+    }
+  }
+  return `<svg viewBox="0 0 100 100" class="case-pic">${s}</svg>`;
+}
+
+(function() {
+  const STORAGE_KEY = 'cubelog-data-v1';
+
+  function blankCase(extra) {
+    return Object.assign({
+      alg: '', notes: '', learned: false, date: null,
+      fourAngle: false, dateFour: null,
+      aufs: false, dateAufs: null,
+      hasAlt: false, altLearned: false, dateAlt: null
+    }, extra);
+  }
+
+  function defaultData() {
+    const oll = [];
+    for (let i = 1; i <= 57; i++) {
+      oll.push(blankCase({ id: 'oll-' + i, num: i, name: '' }));
+    }
+    const pll = PLL_NAMES.map((name, i) => blankCase({ id: 'pll-' + name, num: i + 1, name: name, alg: PLL_DEFAULT_ALG[name] || '' }));
+    return { oll, pll, custom: [], log: [] };
+  }
+
+  // Corrects specific PLL algs shipped in an earlier version: a leading y/y'
+  // that wasn't needed, and a Gb that was accidentally a duplicate of Ga. Only
+  // replaces text that still exactly matches the old (wrong) value — anything
+  // you've already edited yourself, including any manual fix, is left alone.
+  const PLL_ALG_FIXES = {
+    E: ["y x' R U' R' D R U R' D' R U R' D R U' R' D' x", "x' R U' R' D R U R' D' R U R' D R U' R' D' x"],
+    F: ["y R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R", "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R"],
+    Gb: ["R2 U R' U R' U' R U' R2 D U' R' U R D'", "R' U' R U D' R2 U R' U R U' R U' R2 D"],
+    Ja: ["y2 x R2 F R F' R U2 r' U r U2 x'", "x R2 F R F' R U2 r' U r U2 x'"],
+    Ra: ["y R U' R' U' R U R D R' U' R D' R' U2 R'", "R U' R' U' R U R D R' U' R D' R' U2 R'"],
+    Rb: ["y R2 F R U R U' R' F' R U2 R' U2 R", "R2 F R U R U' R' F' R U2 R' U2 R"],
+    Ua: ["y2 M2 U M U2 M' U M2", "M2 U M U2 M' U M2"],
+    Ub: ["y2 M2 U' M U2 M' U' M2", "M2 U' M U2 M' U' M2"],
+    V: ["y R U' R U R' D R D' R U' D R2 U R2 D' R2", "R U' R U R' D R D' R U' D R2 U R2 D' R2"]
+  };
+
+  // Migrates a case from the previous schema (single "altAngle" bool, no aufs,
+  // no per-field dates) onto the current one, without losing anything the user
+  // already ticked.
+  function migrateCase(c) {
+    if (c.hasAlt === undefined) c.hasAlt = !!c.altAngle;
+    if (c.altLearned === undefined) c.altLearned = !!c.altAngle;
+    if (c.aufs === undefined) c.aufs = false;
+    if (c.dateFour === undefined) c.dateFour = c.fourAngle ? (c.date || null) : null;
+    if (c.dateAufs === undefined) c.dateAufs = null;
+    if (c.dateAlt === undefined) c.dateAlt = c.altLearned ? (c.date || null) : null;
+    return c;
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return defaultData();
+      const parsed = JSON.parse(raw);
+      if (!parsed.oll || !parsed.pll || !parsed.custom) return defaultData();
+      if (!parsed.log) parsed.log = [];
+      parsed.oll.forEach(migrateCase);
+      parsed.pll.forEach(migrateCase);
+      parsed.custom.forEach(migrateCase);
+      // Seed preliminary PLL algs for anyone whose alg field is still blank —
+      // never overwrites an alg you've already entered.
+      parsed.pll.forEach(c => { if (!c.alg && PLL_DEFAULT_ALG[c.name]) c.alg = PLL_DEFAULT_ALG[c.name]; });
+      // Apply the targeted corrections above, only where the text is still exactly the old value.
+      parsed.pll.forEach(c => {
+        const fix = PLL_ALG_FIXES[c.name];
+        if (fix && c.alg === fix[0]) c.alg = fix[1];
+      });
+      return parsed;
+    } catch (e) {
+      console.error('Cube Log: failed to load data', e);
+      return defaultData();
+    }
+  }
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch (e) { console.error('Cube Log: failed to save data', e); }
+  }
+
+  let state = load();
+  let activeTab = 'oll';
+  let activeFilter = 'all';
+  let activeCategory = 'all';
+  let searchTerm = '';
+
+  const todayISO = () => new Date().toISOString().slice(0, 10);
+
+  function daysAgo(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    const diff = Math.floor((new Date() - d) / 86400000);
+    if (diff <= 0) return 'today';
+    if (diff === 1) return '1 day ago';
+    return diff + ' days ago';
+  }
+
+  const LOG_FIELD_LABEL = {
+    learned: 'Learned',
+    four: '4-angle recall',
+    aufs: '3/3 pre/post AUFs practiced',
+    alt: 'Alt angle/alg learned'
+  };
+
+  // Only logs the moment something gets ticked ON — an append-only practice
+  // history. Unticking corrects a mistake, it isn't progress to record.
+  function logEvent(cat, label, field) {
+    state.log.push({ t: new Date().toISOString(), cat, label, field });
+    if (state.log.length > 500) state.log = state.log.slice(state.log.length - 500);
+  }
+
+  function allLearnedEntries() {
+    return [...state.oll, ...state.pll, ...state.custom].filter(c => c.learned && c.date);
+  }
+  function monthKey(dateStr) { return dateStr.slice(0, 7); }
+
+  function renderHero() {
+    const ollLearned = state.oll.filter(c => c.learned).length;
+    const pllLearned = state.pll.filter(c => c.learned).length;
+    const customLearned = state.custom.filter(c => c.learned).length;
+    const total = ollLearned + pllLearned + customLearned;
+    document.getElementById('heroNum').textContent = total;
+    document.getElementById('chipOll').textContent = `OLL ${ollLearned}/57`;
+    document.getElementById('chipPll').textContent = `PLL ${pllLearned}/21`;
+    document.getElementById('chipCustom').textContent = `Custom ${customLearned}`;
+
+    document.getElementById('progOll').style.width = (ollLearned / 57 * 100) + '%';
+    document.getElementById('progOllCount').textContent = `${ollLearned} / 57`;
+    document.getElementById('progPll').style.width = (pllLearned / 21 * 100) + '%';
+    document.getElementById('progPllCount').textContent = `${pllLearned} / 21`;
+
+    document.getElementById('tabOllCount').textContent = `${ollLearned}/57`;
+    document.getElementById('tabPllCount').textContent = `${pllLearned}/21`;
+    document.getElementById('tabCustomCount').textContent = `${customLearned}/${state.custom.length}`;
+    document.getElementById('tabLogCount').textContent = state.log.length;
+
+    const all = [...state.oll, ...state.pll, ...state.custom];
+    document.getElementById('massFour').textContent = all.filter(c => c.fourAngle).length;
+    document.getElementById('massAufs').textContent = all.filter(c => c.aufs).length;
+    document.getElementById('massAlt').textContent = all.filter(c => c.altLearned).length;
+  }
+
+  function renderLog() {
+    const logEl = document.getElementById('logList');
+    if (!state.log.length) {
+      logEl.innerHTML = '<div class="empty-state">No activity yet — tick something in OLL, PLL or Custom and it shows up here, with the exact date.</div>';
+      return;
+    }
+    const groups = {};
+    const order = [];
+    for (let i = state.log.length - 1; i >= 0; i--) {
+      const e = state.log[i];
+      const day = e.t.slice(0, 10);
+      if (!groups[day]) { groups[day] = []; order.push(day); }
+      groups[day].push(e);
+    }
+    let html = '';
+    order.forEach(day => {
+      const d = new Date(day + 'T00:00:00');
+      const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+      html += `<div class="log-day"><div class="log-date">${label} <span class="log-day-count">${groups[day].length}</span></div>`;
+      groups[day].forEach(e => {
+        html += `<div class="log-entry"><span class="log-cat ${e.cat}-text">${escapeAttr(e.label)}</span><span class="log-field">${LOG_FIELD_LABEL[e.field] || e.field}</span></div>`;
+      });
+      html += `</div>`;
+    });
+    logEl.innerHTML = html;
+  }
+
+  function renderChart() {
+    const entries = allLearnedEntries();
+    const now = new Date();
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: d.toISOString().slice(0, 7), label: d.toLocaleString('en-US', { month: 'short' }) });
+    }
+    const counts = months.map(m => entries.filter(e => monthKey(e.date) === m.key).length);
+    const max = Math.max(1, ...counts);
+    const barsEl = document.getElementById('bars');
+    barsEl.innerHTML = '';
+    months.forEach((m, i) => {
+      const col = document.createElement('div');
+      col.className = 'bar-col';
+      const isCurrent = i === months.length - 1;
+      const h = Math.max(2, Math.round((counts[i] / max) * 72));
+      col.innerHTML = `<div class="bar-count">${counts[i]}</div><div class="bar${isCurrent ? ' current' : ''}" style="height:${h}px"></div><div class="bar-month">${m.label}</div>`;
+      barsEl.appendChild(col);
+    });
+    const thisMonth = counts[counts.length - 1];
+    const lastMonth = counts[counts.length - 2];
+    const compareEl = document.getElementById('chartCompare');
+    if (lastMonth === 0 && thisMonth === 0) {
+      compareEl.textContent = 'No algs logged in the last two months yet.';
+    } else {
+      const diff = thisMonth - lastMonth;
+      const trendClass = diff > 0 ? 'up' : (diff < 0 ? 'down' : '');
+      const arrow = diff > 0 ? '\u25B2' : (diff < 0 ? '\u25BC' : '\u2014');
+      compareEl.innerHTML = `<b>${thisMonth}</b> this month vs <b>${lastMonth}</b> last month <span class="${trendClass}">${arrow}</span>`;
+    }
+  }
+
+  function categoryOf(c, tab) {
+    if (tab === 'oll') return OLL_SHAPE[c.num - 1] || null;
+    if (tab === 'pll') return PLL_CATEGORY[c.name] || null;
+    return null;
+  }
+
+  function matchesFilter(c) {
+    if (activeFilter === 'learned' && !c.learned) return false;
+    if (activeFilter === 'remaining' && c.learned) return false;
+    if (activeCategory !== 'all' && categoryOf(c, activeTab) !== activeCategory) return false;
+    if (searchTerm) {
+      const hay = `${c.num || ''} ${c.name || ''} ${c.notes || ''} ${c.alg || ''}`.toLowerCase();
+      if (!hay.includes(searchTerm.toLowerCase())) return false;
+    }
+    return true;
+  }
+
+  function caseLabel(c, tab) {
+    if (tab === 'pll') return c.name;
+    if (tab === 'oll') return 'OLL ' + String(c.num).padStart(2, '0');
+    return c.name || 'Custom';
+  }
+
+  function patternFor(c, tab) {
+    if (tab === 'oll') return OLL_PAT[c.num - 1] || null;
+    if (tab === 'pll') return PLL_PAT[c.num - 1] || null;
+    return null;
+  }
+
+  function escapeAttr(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  function renderList() {
+    const list = state[activeTab];
+    const filtered = list.filter(matchesFilter);
+    const listEl = document.getElementById('caseList');
+    listEl.innerHTML = '';
+    document.getElementById('customAddWrap').style.display = activeTab === 'custom' ? 'block' : 'none';
+
+    if (filtered.length === 0) {
+      const msg = activeTab === 'custom' && state.custom.length === 0
+        ? 'No custom algorithms yet. Add F2L cases, alternates, or anything else here.'
+        : 'Nothing matches here.';
+      listEl.innerHTML = `<div class="empty-state">${msg}</div>`;
+      return;
+    }
+
+    filtered.forEach(c => {
+      const row = document.createElement('div');
+      row.className = 'case-row';
+      const colorClass = activeTab + '-text';
+      const showNameInput = activeTab === 'oll';
+      const pat = patternFor(c, activeTab);
+      const label = caseLabel(c, activeTab);
+      const altBlock = c.hasAlt
+        ? `<div class="alt-row">
+             <label class="check-line">
+               <input type="checkbox" data-field="altLearned" data-datefield="dateAlt" data-logfield="alt" ${c.altLearned ? 'checked' : ''}>
+               <span>Alt angle/alg</span>
+             </label>
+             <button class="alt-remove" data-action="unmark-alt" title="This case doesn't have an alt angle">&times;</button>
+           </div>`
+        : `<button class="add-alt-link" data-action="mark-alt">+ alt angle</button>`;
+      row.innerHTML = `
+        <div class="case-pic-wrap">
+          ${caseSVG(pat, activeTab === 'oll')}
+          <div class="case-num ${colorClass}">${label}</div>
+          ${showNameInput ? `<input class="case-name-input" data-field="name" placeholder="nickname" value="${escapeAttr(c.name || '')}">` : ''}
+        </div>
+        <div class="case-fields">
+          <input class="alg-input" data-field="alg" placeholder="Enter your algorithm" value="${escapeAttr(c.alg || '')}">
+          <input class="notes-input" data-field="notes" placeholder="Notes (fingertricks, source, etc.)" value="${escapeAttr(c.notes || '')}">
+        </div>
+        <div class="case-status">
+          <label class="check-line primary">
+            <input type="checkbox" data-field="learned" data-datefield="date" data-logfield="learned" ${c.learned ? 'checked' : ''}>
+            <span>Learned</span>
+          </label>
+          <label class="check-line">
+            <input type="checkbox" data-field="fourAngle" data-datefield="dateFour" data-logfield="four" ${c.fourAngle ? 'checked' : ''}>
+            <span>4-angle recall</span>
+          </label>
+          <label class="check-line">
+            <input type="checkbox" data-field="aufs" data-datefield="dateAufs" data-logfield="aufs" ${c.aufs ? 'checked' : ''}>
+            <span>3/3 pre/post AUFs</span>
+          </label>
+          ${altBlock}
+          <div class="learned-date">${c.learned && c.date ? daysAgo(c.date) : ''}</div>
+        </div>
+        ${activeTab === 'custom' ? `<button class="del-btn" data-action="delete" title="Remove">&times;</button>` : '<div></div>'}
+      `;
+
+      row.querySelectorAll('[data-field]').forEach(el => {
+        const field = el.dataset.field;
+        const isCheckbox = el.type === 'checkbox';
+        const evt = isCheckbox ? 'change' : 'input';
+        el.addEventListener(evt, () => {
+          if (isCheckbox) {
+            const wasOff = !c[field];
+            c[field] = el.checked;
+            const dateField = el.dataset.datefield;
+            if (dateField) c[dateField] = el.checked ? todayISO() : null;
+            if (el.checked && wasOff) logEvent(activeTab, label, el.dataset.logfield);
+            save();
+            renderAll();
+          } else {
+            c[field] = el.value;
+            save();
+          }
+        });
+      });
+
+      const delBtn = row.querySelector('[data-action="delete"]');
+      if (delBtn) {
+        delBtn.addEventListener('click', () => {
+          state.custom = state.custom.filter(x => x.id !== c.id);
+          save();
+          renderAll();
+        });
+      }
+
+      const markAltBtn = row.querySelector('[data-action="mark-alt"]');
+      if (markAltBtn) {
+        markAltBtn.addEventListener('click', () => {
+          c.hasAlt = true;
+          save();
+          renderList();
+        });
+      }
+      const unmarkAltBtn = row.querySelector('[data-action="unmark-alt"]');
+      if (unmarkAltBtn) {
+        unmarkAltBtn.addEventListener('click', () => {
+          c.hasAlt = false;
+          c.altLearned = false;
+          c.dateAlt = null;
+          save();
+          renderAll();
+        });
+      }
+
+      listEl.appendChild(row);
+    });
+  }
+
+  function renderAll() { renderHero(); renderChart(); renderList(); }
+
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    activeTab = btn.dataset.tab;
+    activeCategory = 'all';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    const isLog = activeTab === 'log';
+    document.querySelector('.toolbar').style.display = isLog ? 'none' : 'flex';
+    document.getElementById('listPanel').style.display = isLog ? 'none' : 'block';
+    document.getElementById('logPanel').style.display = isLog ? 'block' : 'none';
+    document.getElementById('catRowPll').style.display = activeTab === 'pll' ? 'block' : 'none';
+    document.getElementById('catRowOll').style.display = activeTab === 'oll' ? 'block' : 'none';
+    document.querySelectorAll('#pllCatSeg button').forEach(b => b.classList.toggle('active', b.dataset.cat === 'all'));
+    document.getElementById('ollCatSelect').value = 'all';
+    if (isLog) { document.getElementById('customAddWrap').style.display = 'none'; renderLog(); }
+    else renderList();
+  });
+
+  document.getElementById('pllCatSeg').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    activeCategory = btn.dataset.cat;
+    document.querySelectorAll('#pllCatSeg button').forEach(b => b.classList.toggle('active', b === btn));
+    renderList();
+  });
+
+  document.getElementById('ollCatSelect').addEventListener('change', (e) => {
+    activeCategory = e.target.value;
+    renderList();
+  });
+
+  document.getElementById('filterSeg').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    activeFilter = btn.dataset.filter;
+    document.querySelectorAll('#filterSeg button').forEach(b => b.classList.toggle('active', b === btn));
+    renderList();
+  });
+
+  document.getElementById('searchBox').addEventListener('input', (e) => { searchTerm = e.target.value; renderList(); });
+
+  document.getElementById('customAddBtn').addEventListener('click', () => {
+    const nameEl = document.getElementById('customName');
+    const algEl = document.getElementById('customAlg');
+    const name = nameEl.value.trim();
+    if (!name) { nameEl.focus(); return; }
+    state.custom.push(blankCase({ id: 'custom-' + Date.now(), num: null, name: name, alg: algEl.value.trim() }));
+    nameEl.value = ''; algEl.value = '';
+    save(); renderAll();
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `cube-log-backup-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  const importFile = document.getElementById('importFile');
+  document.getElementById('importBtn').addEventListener('click', () => importFile.click());
+  importFile.addEventListener('change', () => {
+    const file = importFile.files[0];
+    if (!file) return;
+    file.text().then(text => {
+      const parsed = JSON.parse(text);
+      if (!parsed.oll || !parsed.pll || !parsed.custom) throw new Error('not a Cube Log backup');
+      if (!confirm('Replace everything in this browser with the backup?')) return;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      state = load();
+      renderAll();
+    }).catch(e => alert('Could not import: ' + e.message))
+      .finally(() => { importFile.value = ''; });
+  });
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
