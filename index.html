@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cube Log</title>
+<title>OLL/PLL Alg Log</title>
 <meta name="description" content="Track your OLL/PLL algorithms, what's left to learn, and how fast you're picking them up.">
 <meta name="theme-color" content="#15171a">
 <link rel="manifest" href="manifest.json">
@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cube Log">
+<meta name="apple-mobile-web-app-title" content="Alg Log">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -171,7 +171,7 @@
 
   <div class="hero">
     <div class="hero-left">
-      <h1>Cube Log</h1>
+      <h1>OLL/PLL Alg Log</h1>
       <p class="sub">Your algorithm set, what's left to learn, and how fast you're picking it up.</p>
     </div>
     <div class="hero-stat">
@@ -367,6 +367,7 @@ function caseSVG(pat, mono) {
 }
 
 (function() {
+  // Key kept from the app's original name so existing saved data still loads.
   const STORAGE_KEY = 'cubelog-data-v1';
 
   function blankCase(extra) {
@@ -436,14 +437,14 @@ function caseSVG(pat, mono) {
       });
       return parsed;
     } catch (e) {
-      console.error('Cube Log: failed to load data', e);
+      console.error('OLL/PLL Alg Log: failed to load data', e);
       return defaultData();
     }
   }
 
   function save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-    catch (e) { console.error('Cube Log: failed to save data', e); }
+    catch (e) { console.error('OLL/PLL Alg Log: failed to save data', e); }
   }
 
   let state = load();
@@ -770,7 +771,7 @@ function caseSVG(pat, mono) {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `cube-log-backup-${todayISO()}.json`;
+    a.download = `oll-pll-alg-log-backup-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   });
@@ -782,7 +783,7 @@ function caseSVG(pat, mono) {
     if (!file) return;
     file.text().then(text => {
       const parsed = JSON.parse(text);
-      if (!parsed.oll || !parsed.pll || !parsed.custom) throw new Error('not a Cube Log backup');
+      if (!parsed.oll || !parsed.pll || !parsed.custom) throw new Error('not an OLL/PLL Alg Log backup');
       if (!confirm('Replace everything in this browser with the backup?')) return;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
       state = load();

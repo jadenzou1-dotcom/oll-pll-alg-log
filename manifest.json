@@ -1,6 +1,6 @@
 {
-  "name": "Cube Log",
-  "short_name": "Cube Log",
+  "name": "OLL/PLL Alg Log",
+  "short_name": "Alg Log",
   "description": "Track your OLL/PLL algorithms, what's left to learn, and how fast you're picking them up.",
   "start_url": "./",
   "scope": "./",

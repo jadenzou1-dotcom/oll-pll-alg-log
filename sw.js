@@ -1,6 +1,6 @@
 // Network-first so updates pushed to GitHub show up immediately; falls back to
 // the cached copy when offline.
-const CACHE = 'cube-log-v1';
+const CACHE = 'oll-pll-alg-log-v1';
 const FILES = ['./', 'index.html', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

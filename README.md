@@ -1,8 +1,8 @@
-# Cube Log
+# OLL/PLL Alg Log
 
 A tracker for learning Rubik's cube last-layer algorithms — all 57 OLL and 21 PLL cases, plus your own custom algs (F2L, alternates, anything).
 
-**Use it:** https://jadenzou1-dotcom.github.io/cube-log/
+**Use it:** https://jadenzou1-dotcom.github.io/oll-pll-alg-log/
 
 ## Features
 
