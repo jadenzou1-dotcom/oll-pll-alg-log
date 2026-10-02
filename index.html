@@ -337,11 +337,27 @@ const PLL_DEFAULT_ALG = {
   Z: "M' U' M2 U' M2 U' M' U2 M2"
 };
 
-// Starter OLL algs, keyed by case number (1–57).
-const OLL_DEFAULT_ALG = {};
+// Starter OLL algs, keyed by case number (1–57). Picked from speedcubedb.com
+// and checked to solve the exact picture shown in the app, no extra AUF.
+const OLL_DEFAULT_ALG = {
+  // Cross
+  21: "R U R' U R U' R' U R U2 R'",
+  22: "R U2 R2 U' R2 U' R2 U2 R",
+  23: "R2 D R' U2 R D' R' U2 R'",
+  24: "r U R' U' r' F R F'",
+  25: "F R' F' r U R U' r'",
+  26: "y R U2 R' U' R U' R'",
+  27: "R U R' U R U2 R'",
+  // Corners oriented
+  28: "S' R U R' S R U' R'",
+  57: "R U R' U' r R' U R U' r'"
+};
 
 // Starter alternative algs, keyed by case id ('oll-27', 'pll-Ga', ...).
-const DEFAULT_ALT_ALG = {};
+const DEFAULT_ALT_ALG = {
+  'oll-21': "y R U2 R' U' R U R' U' R U' R'",
+  'oll-23': "y2 R2 D' R U2 R' D R U2 R"
+};
 
 const STICKER = { U: 'var(--sticker-u)', R: '#c1272d', F: '#2f8f46', D: '#eceae5', L: '#e2791f', B: '#2557a5' };
 
@@ -400,13 +416,22 @@ function caseSVG(pat, mono) {
   }
   function starterAltAlg(c) { return DEFAULT_ALT_ALG[c.id] || ''; }
 
+  // Fills a blank alg/alt with a starter that's been added since this browser
+  // last saw it. seeded* remembers what was offered, so a field the user
+  // deliberately cleared isn't refilled with the same starter on every load.
+  function seedNewStarters(c) {
+    const alg = starterAlg(c), alt = starterAltAlg(c);
+    if (alg && c.seededAlg !== alg) { if (!c.alg) c.alg = alg; c.seededAlg = alg; }
+    if (alt && c.seededAlt !== alt) { if (!c.altAlg) c.altAlg = alt; c.seededAlt = alt; }
+  }
+
   function defaultData() {
     const oll = [];
     for (let i = 1; i <= 57; i++) {
       oll.push(blankCase({ id: 'oll-' + i, num: i, name: '' }));
     }
     const pll = PLL_NAMES.map((name, i) => blankCase({ id: 'pll-' + name, num: i + 1, name: name }));
-    [...oll, ...pll].forEach(c => { c.alg = starterAlg(c); c.altAlg = starterAltAlg(c); });
+    [...oll, ...pll].forEach(seedNewStarters);
     return { oll, pll, custom: [], log: [] };
   }
 
@@ -447,6 +472,7 @@ function caseSVG(pat, mono) {
       parsed.oll.forEach(migrateCase);
       parsed.pll.forEach(migrateCase);
       parsed.custom.forEach(migrateCase);
+      [...parsed.oll, ...parsed.pll].forEach(seedNewStarters);
       // Apply the targeted corrections above, only where the text is still exactly the old value.
       parsed.pll.forEach(c => {
         const fix = PLL_ALG_FIXES[c.name];

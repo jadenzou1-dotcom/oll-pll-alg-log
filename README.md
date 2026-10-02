@@ -29,3 +29,7 @@ Everything is saved in your browser's `localStorage` — nothing is sent anywher
 ## Run locally
 
 Just open `index.html` in a browser. No build step, no dependencies.
+
+## Checking starter algs
+
+`python3 tools/check_algs.py` simulates every starter alg in `index.html` and confirms it solves the exact case picture the app shows (same angle, no extra AUF).
